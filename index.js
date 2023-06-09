@@ -38,8 +38,9 @@ async function run() {
     const allClassesCollection = client.db("learningCamp").collection("allClasses");
     const usersCollection = client.db("learningCamp").collection("allUsers");
 
+    // Users Related API
 
-    app.put('/allUsers/:email', async (req, res) => {
+    app.put('/all-users/:email', async (req, res) => {
       const email = req.params.email;
       const user = req.body;
       const query = {email: email};
@@ -49,12 +50,19 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/allUsers', async (req, res) => {
+    app.get('/all-users', async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result)
     });
     
 
+    // Class Related API
+
+    app.post('/add-a-class', async (req, res) => {
+      const addClass = req.body;
+      const result = await allClassesCollection.insertOne(addClass);
+      res.send(result);
+    });
 
 
     // Send a ping to confirm a successful connection
