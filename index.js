@@ -2,7 +2,7 @@ const express= require('express');
 const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const jwt = require('jsonwebtoken')
 
@@ -66,6 +66,16 @@ async function run() {
 
     app.get('/all-classes', async (req, res) => {
       const result = await allClassesCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.put('/update-class-status/:id', async (req, res) => {
+      const id = req.params.id;
+      const status = req.body;
+      const query = {_id: new ObjectId(id)};
+      const options = {upsert: true};
+      const updateClassStatus = {$set: status}
+      const result = await allClassesCollection.updateOne(query, updateClassStatus, options);
       res.send(result);
     });
 
