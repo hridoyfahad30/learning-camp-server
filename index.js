@@ -61,8 +61,7 @@ async function run() {
       const body = req.body;
       const token = jwt.sign(body, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'});
       res.send({token});
-    })
-
+    });
 
     // Users Related API
     app.put('/all-users/:email', async (req, res) => {
