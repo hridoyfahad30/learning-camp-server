@@ -1,15 +1,16 @@
 const express= require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken')
 const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
-const jwt = require('jsonwebtoken')
 
 const corsOptions = {
   origin: '*',
   credentials: true,
-  optionSuccessStatus: 200
+  optionSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE']
 }
 
 
@@ -30,6 +31,23 @@ const client = new MongoClient(uri, {
   }
 });
 
+// Verify JWT 
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if(!authorization){
+    return res.status(401).send({error: true, message: 'unauthorized access'});
+  }
+  const token = authorization.split(' ')[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+    if(error){
+      return res.status(401).send({error: true, message: 'unauthorized access'})
+    }
+    req.decoded = decoded;
+    next()
+  })
+}
+
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -38,8 +56,15 @@ async function run() {
     const allClassesCollection = client.db("learningCamp").collection("allClasses");
     const usersCollection = client.db("learningCamp").collection("allUsers");
 
-    // Users Related API
+    // JWT 
+    app.post('/jwt', async (req, res) => {
+      const body = req.body;
+      const token = jwt.sign(body, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'});
+      res.send({token});
+    })
 
+
+    // Users Related API
     app.put('/all-users/:email', async (req, res) => {
       const email = req.params.email;
       const user = req.body;
@@ -54,21 +79,59 @@ async function run() {
       const result = await usersCollection.find().toArray();
       res.send(result)
     });
+
+    // Update Instructor Profile
+    app.put('/profile', async (req, res) => {
+      const email = req.query.email;
+      const query = {email: email};
+      const options = {upsert: true};
+      const updateApproveCount = {$inc:{ approved: 1}}
+      const result = await usersCollection.updateOne(query, updateApproveCount, options);
+      res.send(result)
+    });
     
+    // Get User Profile Information
+    app.get('/profile', verifyJWT, async (req, res) => {
+      const decoded = req.decoded;
+      if(decoded.email !== req.query.email){
+        return res.status(403).send({error: true, message: 'forbidden access'})
+      }
+      let query = {};
+      if(req.query?.email){
+        query = {email: req.query.email}
+      }
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    })
 
     // Class Related API
-
     app.post('/add-a-class', async (req, res) => {
       const addClass = req.body;
       const result = await allClassesCollection.insertOne(addClass);
       res.send(result);
     });
 
+    // Get All User
     app.get('/all-classes', async (req, res) => {
       const result = await allClassesCollection.find().toArray();
       res.send(result);
     });
 
+    // Get Instructor Classes by Email
+    app.get('/instructor-classes', verifyJWT, async (req, res) => {
+      const decoded = req.decoded;
+      if(decoded.email !== req.query.email){
+        return res.status(403).send({error: true, message: 'forbidden access'})
+      }
+      let query = {};
+      if(req.query?.email){
+        query = {instructorEmail: req.query.email}
+      }
+      const result = await allClassesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // Update Class Status ny Admin
     app.put('/update-class-status/:id', async (req, res) => {
       const id = req.params.id;
       const status = req.body;
