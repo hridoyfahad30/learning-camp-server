@@ -101,7 +101,7 @@ async function run() {
       }
       const result = await usersCollection.find(query).toArray();
       res.send(result);
-    })
+    });
 
     // Class Related API
     app.post('/add-a-class', async (req, res) => {
