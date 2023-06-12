@@ -137,6 +137,7 @@ async function run() {
       const result = await selectClassCollection.find(query).toArray();
       res.send(result);
     });
+    
 
     // Get Instructor Classes by Email
     app.get('/instructor-classes', verifyJWT, async (req, res) => {
