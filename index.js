@@ -55,6 +55,7 @@ async function run() {
 
     const allClassesCollection = client.db("learningCamp").collection("allClasses");
     const usersCollection = client.db("learningCamp").collection("allUsers");
+    const selectClassCollection = client.db("learningCamp").collection("selectClasses");
 
     // JWT 
     app.post('/jwt', async (req, res) => {
@@ -104,7 +105,14 @@ async function run() {
     });
 
     // Class Related API
-    app.post('/add-a-class', async (req, res) => {
+    app.post('/add-select-class', verifyJWT, async (req, res) => {
+      const addSelectClass = req.body;
+      const result = await selectClassCollection.insertOne(addSelectClass);
+      res.send(result);
+    });
+
+    // Class Related API
+    app.post('/add-a-class', verifyJWT, async (req, res) => {
       const addClass = req.body;
       const result = await allClassesCollection.insertOne(addClass);
       res.send(result);
@@ -113,6 +121,20 @@ async function run() {
     // Get All User
     app.get('/all-classes', async (req, res) => {
       const result = await allClassesCollection.find().toArray();
+      res.send(result);
+    });
+
+    // Get Instructor Classes by Email
+    app.get('/my-selected-classes', verifyJWT, async (req, res) => {
+      const decoded = req.decoded;
+      if(decoded.email !== req.query.email){
+        return res.status(403).send({error: true, message: 'forbidden access'})
+      }
+      let query = {};
+      if(req.query?.email){
+        query = {email: req.query.email}
+      }
+      const result = await selectClassCollection.find(query).toArray();
       res.send(result);
     });
 
